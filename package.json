@@ -31,7 +31,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@changesets/cli": "^2.27.5",
-    "glob": "^7.1.6",
+    "glob": "^11.0.3",
     "rimraf": "^3.0.2"
   },
   "devDependencies": {
