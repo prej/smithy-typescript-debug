@@ -22,8 +22,8 @@ plugins {
     signing
     checkstyle
     jacoco
-    id("com.github.spotbugs") version "6.0.8"
-    id("org.jreleaser") version "1.9.0"
+    id("com.github.spotbugs") version "6.2.3"
+    id("org.jreleaser") version "1.19.0"
 }
 
 allprojects {
@@ -73,7 +73,7 @@ subprojects {
             testImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.2")
             testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.2")
             testImplementation("org.hamcrest:hamcrest:2.2")
-            testImplementation("org.mockito:mockito-junit-jupiter:5.12.0")
+            testImplementation("org.mockito:mockito-junit-jupiter:5.18.0")
         }
 
         // Reusable license copySpec
