@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "importHelpers": true,
+    "module": "commonjs",
+    "noEmitHelpers": false,
+    "target": "ES2018",
+    "noCheck": true
+  }
+}

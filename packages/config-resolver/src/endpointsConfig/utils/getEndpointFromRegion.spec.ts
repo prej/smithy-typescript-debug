@@ -1,0 +1,115 @@
+import { afterEach, beforeEach, describe, expect, test as it, vi } from "vitest";
+
+import { getEndpointFromRegion } from "./getEndpointFromRegion";
+
+describe(getEndpointFromRegion.name, () => {
+  const mockRegion = vi.fn();
+  const mockUrlParser = vi.fn();
+  const mockRegionInfoProvider = vi.fn();
+  const mockUseFipsEndpoint = vi.fn();
+  const mockUseDualstackEndpoint = vi.fn();
+
+  const mockInput = {
+    region: mockRegion,
+    urlParser: mockUrlParser,
+    regionInfoProvider: mockRegionInfoProvider,
+    useDualstackEndpoint: mockUseDualstackEndpoint,
+    useFipsEndpoint: mockUseFipsEndpoint,
+  };
+
+  const mockRegionValue = "mockRegion";
+  const mockEndpoint = {
+    protocol: "http:",
+    hostname: "localhost",
+    path: "/",
+  };
+  const mockRegionInfo = { hostname: "mockHostname" };
+
+  beforeEach(() => {
+    mockRegion.mockResolvedValue(mockRegionValue);
+    mockUrlParser.mockResolvedValue(mockEndpoint);
+    mockRegionInfoProvider.mockResolvedValue(mockRegionInfo);
+    mockUseFipsEndpoint.mockResolvedValue(false);
+    mockUseDualstackEndpoint.mockResolvedValue(false);
+  });
+
+  afterEach(() => {
+    expect(mockRegion).toHaveBeenCalledTimes(1);
+    vi.clearAllMocks();
+  });
+
+  describe("tls", () => {
+    afterEach(() => {
+      expect(mockRegionInfoProvider).toHaveBeenCalledWith(mockRegionValue, {
+        useDualstackEndpoint: false,
+        useFipsEndpoint: false,
+      });
+    });
+
+    it("uses protocol https when not defined", async () => {
+      await getEndpointFromRegion(mockInput);
+      expect(mockUrlParser).toHaveBeenCalledTimes(1);
+      expect(mockUrlParser).toHaveBeenCalledWith(`https://${mockRegionInfo.hostname}`);
+    });
+
+    it.each([
+      ["http:", false],
+      ["https:", true],
+    ])("uses protocol %s when set to %s", async (protocol, tls) => {
+      await getEndpointFromRegion({ ...mockInput, tls });
+      expect(mockUrlParser).toHaveBeenCalledTimes(1);
+      expect(mockUrlParser).toHaveBeenCalledWith(`${protocol}//${mockRegionInfo.hostname}`);
+    });
+  });
+
+  describe("throws if region is invalid", () => {
+    const errorMsg = "Invalid region in client config";
+    it.each([
+      "",
+      "has_underscore",
+      "-starts-with-dash",
+      "ends-with-dash-",
+      "-starts-and-ends-with-dash-",
+      "-",
+      "a-",
+      "c0nt@in$-$ymb01$",
+      "a".repeat(64),
+    ])("region: %s", async (region) => {
+      mockRegion.mockResolvedValue(region);
+      try {
+        await getEndpointFromRegion(mockInput);
+        fail(`expected Error: ${errorMsg}`);
+      } catch (error) {
+        expect(error.message).toEqual(errorMsg);
+      }
+      expect(mockRegionInfoProvider).not.toHaveBeenCalled();
+      expect(mockUrlParser).not.toHaveBeenCalled();
+    });
+  });
+
+  it("throws if hostname is not returned by regionInfoProvider", async () => {
+    mockRegionInfoProvider.mockResolvedValue({});
+    const errorMsg = "Cannot resolve hostname from client config";
+    try {
+      await getEndpointFromRegion(mockInput);
+      fail(`expected Error: ${errorMsg}`);
+    } catch (error) {
+      expect(error.message).toEqual(errorMsg);
+    }
+    expect(mockRegionInfoProvider).toHaveBeenCalledWith(mockRegionValue, {
+      useDualstackEndpoint: false,
+      useFipsEndpoint: false,
+    });
+    expect(mockUrlParser).not.toHaveBeenCalled();
+  });
+
+  it("returns parsed endpoint", async () => {
+    const endpoint = await getEndpointFromRegion(mockInput);
+    expect(endpoint).toEqual(mockEndpoint);
+    expect(mockRegionInfoProvider).toHaveBeenCalledWith(mockRegionValue, {
+      useDualstackEndpoint: false,
+      useFipsEndpoint: false,
+    });
+    expect(mockUrlParser).toHaveBeenCalledWith(`https://${mockRegionInfo.hostname}`);
+  });
+});
